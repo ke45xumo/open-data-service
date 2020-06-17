@@ -181,7 +181,7 @@ services:
       - "traefik.http.routers.to-transformation.middlewares=transformation-stripprefix@docker"
       - "traefik.http.middlewares.transformation-stripprefix.stripprefix.prefixes=/api/transformation"
       - "traefik.http.services.transformation.loadbalancer.server.port=8080"
-    
+
   transformation-db:
     image: postgres
     environment:
@@ -195,7 +195,7 @@ services:
       context: ./notification/
     environment:
       AUTH_ENABLED: 'false' #TODO: turn to true as soon as it works!
-      
+
       # Postgres connection vars
       PGUSER: 'notification_usr'
       PGHOST: 'notification-db'
@@ -208,7 +208,7 @@ services:
       AMQP_SERVICE_PWD: 'R4bb!7_4DM_p4SS'
 
       AMQP_NOTIFICATION_QUEUE: 'NOTIF_QUEUE'
-    depends_on: 
+    depends_on:
       - notification-db
       - rabbitmq
     labels:
@@ -219,9 +219,7 @@ services:
       - "traefik.http.services.notification.loadbalancer.server.port=8080"
 
   notification-db:
-    image: notification-db
-    build:
-      context:  ./notification/notification-db
+    image: postgres
     environment:
       POSTGRES_USER: 'notification_usr'
       POSTGRES_PASSWORD: 'admin'
