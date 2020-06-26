@@ -90,11 +90,7 @@ services:
     build:
       context: ./scheduler/
     environment:
-      CONFIG_SERVICE_URL: http://core:8080
       ADAPTER_SERVICE_URL: http://adapter:8080
-      TRANSFORMATION_SERVICE_URL: http://transformation:8080
-      NOTIFICATION_SERVICE_URL: http://notification:8080
-      STORAGE_SERVICE_URL: http://storage:3000
       INITIAL_CONNECTION_RETRIES: 20
       INITIAL_CONNECTION_RETRY_BACKOFF: 5000
     labels:
@@ -185,7 +181,7 @@ services:
       - "traefik.http.routers.to-transformation.middlewares=transformation-stripprefix@docker"
       - "traefik.http.middlewares.transformation-stripprefix.stripprefix.prefixes=/api/transformation"
       - "traefik.http.services.transformation.loadbalancer.server.port=8080"
-    
+
   transformation-db:
     image: postgres
     environment:
@@ -199,7 +195,7 @@ services:
       context: ./notification/
     environment:
       AUTH_ENABLED: 'false' #TODO: turn to true as soon as it works!
-      
+
       # Postgres connection vars
       PGUSER: 'notification_usr'
       PGHOST: 'notification-db'
@@ -212,7 +208,7 @@ services:
       AMQP_SERVICE_PWD: 'R4bb!7_4DM_p4SS'
 
       AMQP_NOTIFICATION_QUEUE: 'NOTIF_QUEUE'
-    depends_on: 
+    depends_on:
       - notification-db
       - rabbitmq
     labels:
