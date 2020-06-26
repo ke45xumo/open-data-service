@@ -30,7 +30,7 @@ export async function initializeJobs (retries = 30, retryBackoff = 3000): Promis
     }
   } catch (e) {
     if (retries === 0) {
-      return Promise.reject(new Error('Failed to initialize datasource/pipeline scheduler.'))
+      return Promise.reject(new Error('Failed to initialize datasource scheduler.'))
     }
     if (e.code === 'ECONNREFUSED' || e.code === 'ENOTFOUND') {
       console.error(`Failed to sync with Adapter Service on initialization (${retries}) . Retrying after ${retryBackoff}ms... `)
@@ -44,7 +44,7 @@ export async function initializeJobs (retries = 30, retryBackoff = 3000): Promis
 }
 
 /**
- * Regularly get deltas for pipeline configurations and apply changes.
+ * Regularly get deltas for datasource configurations and apply changes.
  */
 export async function updateDatasources (): Promise<void> {
   try {
@@ -133,7 +133,7 @@ export function determineExecutionDate (datasourceConfig: DatasourceConfig): Dat
 
 export function scheduleDatasource (datasourceConfig: DatasourceConfig): ExecutionJob {
   const executionDate: Date = determineExecutionDate(datasourceConfig)
-  console.log(`Datasource ${datasourceConfig.id} with consecuting pipelines scheduled for next execution at ${executionDate.toLocaleString()}.`)
+  console.log(`Datasource ${datasourceConfig.id} scheduled for next execution at ${executionDate.toLocaleString()}.`)
   const datasourceId = datasourceConfig.id
 
   const scheduledJob = schedule.scheduleJob(`Datasource ${datasourceId}`, executionDate, () =>
