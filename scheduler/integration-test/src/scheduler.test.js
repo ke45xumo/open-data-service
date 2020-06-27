@@ -4,25 +4,9 @@ const waitOn = require('wait-on')
 
 const URL = process.env.SCHEDULER_API || 'http://localhost:8080'
 
-const MOCK_CORE_PORT = process.env.MOCK_CORE_PORT || 8081
-const MOCK_CORE_HOST = process.env.MOCK_CORE_HOST || 'localhost'
-const MOCK_CORE_URL = 'http://' + MOCK_CORE_HOST + ':' + MOCK_CORE_PORT
-
 const MOCK_ADAPTER_PORT = process.env.MOCK_ADAPTER_PORT || 8082
 const MOCK_ADAPTER_HOST = process.env.MOCK_ADAPTER_HOST || 'localhost'
 const MOCK_ADAPTER_URL = 'http://' + MOCK_ADAPTER_HOST + ':' + MOCK_ADAPTER_PORT
-
-const MOCK_TRANSFORMATION_PORT = process.env.MOCK_TRANSFORMATION_PORT || 8083
-const MOCK_TRANSFORMATION_HOST = process.env.MOCK_TRANSFORMATION_HOST || 'localhost'
-const MOCK_TRANSFORMATION_URL = 'http://' + MOCK_TRANSFORMATION_HOST + ':' + MOCK_TRANSFORMATION_PORT
-
-const MOCK_NOTIFICATION_PORT = process.env.MOCK_NOTIFICATION_PORT || 8084
-const MOCK_NOTIFICATION_HOST = process.env.MOCK_NOTIFICATION_HOST || 'localhost'
-const MOCK_NOTIFICATION_URL = 'http://' + MOCK_NOTIFICATION_HOST + ':' + MOCK_NOTIFICATION_PORT
-
-const MOCK_STORAGE_PORT = process.env.MOCK_STORAGE_PORT || 8085
-const MOCK_STORAGE_HOST = process.env.MOCK_STORAGE_HOST || 'localhost'
-const MOCK_STORAGE_URL = 'http://' + MOCK_STORAGE_HOST + ':' + MOCK_STORAGE_PORT
 
 const data = {
   field1: 'abc', // 'field' variables from adapter data
@@ -39,13 +23,9 @@ describe('Scheduler', () => {
 
   beforeAll(async () => {
     const pingUrl = URL + '/'
-    console.log('Waiting for service with URL: ' + MOCK_CORE_URL)
     console.log('Waiting for service with URL: ' + MOCK_ADAPTER_URL)
-    console.log('Waiting for service with URL: ' + MOCK_TRANSFORMATION_URL)
-    console.log('Waiting for service with URL: ' + MOCK_NOTIFICATION_URL)
-    console.log('Waiting for service with URL: ' + MOCK_STORAGE_URL)
     await waitOn(
-      { resources: [MOCK_CORE_URL, MOCK_ADAPTER_URL, MOCK_TRANSFORMATION_URL, MOCK_NOTIFICATION_URL, MOCK_STORAGE_URL], timeout: 50000 })
+      { resources: [MOCK_ADAPTER_URL], timeout: 50000 })
     console.log('Waiting for service with URL: ' + pingUrl)
     await waitOn({ resources: [pingUrl], timeout: 50000 })
   }, 60000)
@@ -69,64 +49,22 @@ describe('Scheduler', () => {
     expect(response.body[1].datasourceConfig.id).toEqual(2)
   })
 
-  test('Pipeline runs with dummy data', async () => {
+  test('Datasources triggered first times', async () => {
     await sleep(10000) // pipeline should have been executing until now!
-    const response = await request(MOCK_STORAGE_URL).get('/125') // see what got stored
+    const response = await request(MOCK_ADAPTER_URL).get('/mock/dataImportCounter') // see how many imports
     expect(response.status).toEqual(200)
     expect(response.type).toEqual('application/json')
-    expect(response.body.data).toEqual(data)
+    expect(response.body.dataImportCounter).toEqual(2) // 2 datasource x 1 call
   }, 12000)
 
-  test('Pipeline triggers correct notifications', async () => {
+  test('Datasources triggered twice only if periodic', async () => {
     await sleep(10000) // pipeline should have been executing until now!
-    const triggered = await request(MOCK_NOTIFICATION_URL).get('/webhook/nordstream')
-    expect(triggered.status).toEqual(200)
-    expect(triggered.body).toEqual(
-      {
-        pipelineId: 125,
-        pipelineName: 'nordstream',
-        type: 'WEBHOOK',
-        data,
-        dataLocation: MOCK_STORAGE_URL + '/125',
-        condition: 'data.field2 < 0',
-        url: 'should-also-be-triggered'
-      })
-
-    const alsoTriggered = await request(MOCK_NOTIFICATION_URL).get('/slack/nordstream')
-    expect(alsoTriggered.status).toEqual(200)
-    expect(alsoTriggered.type).toEqual('application/json')
-    expect(alsoTriggered.body).toEqual(
-      {
-        pipelineId: 125,
-        pipelineName: 'nordstream',
-        type: 'SLACK',
-        data,
-        condition: 'data.field2 === 123',
-        dataLocation: MOCK_STORAGE_URL + '/125',
-        url: 'should-be-triggered'
-      })
-    const alsoTriggeredToo = await request(MOCK_NOTIFICATION_URL).get('/fcm/nordstream')
-    expect(alsoTriggeredToo.status).toEqual(200)
-    expect(alsoTriggeredToo.type).toEqual('application/json')
-    expect(alsoTriggeredToo.body).toEqual(
-      {
-        pipelineId: 125,
-        pipelineName: 'nordstream',
-        type: 'FCM',
-        data,
-        condition: 'data.field2 === 123',
-        dataLocation: MOCK_STORAGE_URL + '/125',
-        url: 'should-be-triggered'
-      })
-  }, 12000)
-
-  test('Pipeline processes events', async () => {
-    await sleep(3000)
-    const response = await request(URL).get('/jobs')
+    const response = await request(MOCK_ADAPTER_URL).get('/mock/dataImportCounter') // see how many imports
     expect(response.status).toEqual(200)
     expect(response.type).toEqual('application/json')
-    expect(response.body).toHaveLength(2)
-  })
+    expect(response.body.dataImportCounter).toEqual(3) // 2 datasource x 1 call + 1 datasource x 1 call
+  }, 12000)
+
 })
 
 function sleep (ms) {

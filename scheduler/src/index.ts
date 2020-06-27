@@ -4,7 +4,6 @@ import schedule from 'node-schedule'
 
 import * as Scheduling from './scheduling'
 import { ADAPTER_SERVICE_URL } from './clients/adapter-client'
-import * as CoreClient from './clients/core-client'
 
 const app = express()
 const port = 8080
@@ -34,7 +33,6 @@ app.get('/jobs', (req, res) => {
 })
 
 let datasourcePollingJob: schedule.Job
-let pipelinePollingJob: schedule.Job
 
 async function updateDatsources (): Promise<void> {
   try {
@@ -59,43 +57,17 @@ async function initJobs (): Promise<void> {
     updateDatsources)
 }
 
-async function initPipelineConfigSync (retries = 30, retryBackoff = 3000): Promise<void> {
-  try {
-    console.log('Starting sync with Core Service')
-    await CoreClient.initSync()
-  } catch (e) {
-    if (retries === 0) {
-      return Promise.reject(new Error('Failed to initialize pipelineConfig sync.'))
-    }
-    if (e.code === 'ECONNREFUSED' || e.code === 'ENOTFOUND') {
-      console.error(`Failed to sync with Core Service on initialization (${retries}) . Retrying after ${retryBackoff}ms... `)
-    } else {
-      console.error(e)
-      console.error(`Retrying (${retries})...`)
-    }
-    await new Promise(resolve => setTimeout(resolve, retryBackoff)) // sleep
-    return await initPipelineConfigSync(retries - 1, retryBackoff)
-  }
-
-  pipelinePollingJob = schedule.scheduleJob(
-    'PipelineConfigSyncJob',
-    CHRONJOB_EVERY_2_SECONDS,
-    CoreClient.sync)
-}
+// eslint-disable-next-line @typescript-eslint/no-floating-promises
+initJobs()
 
 // log all promise rejections that happen (mostly because they happen in async and don't log the point where it happened)
 process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
   console.log('Caught unhandled promise:', reason);
 });
 
-// eslint-disable-next-line @typescript-eslint/no-floating-promises
-initPipelineConfigSync()
-initJobs()
-
 process.on('SIGTERM', async () => {
   console.info('Scheduler: SIGTERM signal received.')
   schedule.cancelJob(datasourcePollingJob)
-  schedule.cancelJob(pipelinePollingJob)
   Scheduling.cancelAllJobs()
   await server.close()
 })

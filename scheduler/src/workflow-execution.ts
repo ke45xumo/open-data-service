@@ -1,19 +1,13 @@
 import * as AdapterClient from './clients/adapter-client'
-import * as CoreClient from './clients/core-client'
-import * as TransformationClient from './clients/transformation-client'
-import * as NotificationClient from './clients/notification-client'
-import * as StorageClient from './clients/storage-client'
-
 import DatasourceConfig from './interfaces/datasource-config'
-import PipelineConfig from './interfaces/pipeline-config'
-import NotificationConfig from './interfaces/notification-config'
+
 import { AxiosError } from 'axios'
 import AdapterResponse from '@/interfaces/adapter-response'
 
 export async function execute (datasourceConfig: DatasourceConfig, maxRetries = 3): Promise<void> {
   // adapter
   const adapterResponse: AdapterResponse =
-    await retryableExecution(executeAdapter, datasourceConfig, `Executing adapter for datasource ${datasourceConfig.id}`)
+        await retryableExecution(executeAdapter, datasourceConfig, `Executing adapter for datasource ${datasourceConfig.id}`)
 
   // pipeline
   const followingPipelines = await CoreClient.getCachedPipelinesByDatasourceId(datasourceConfig.id)
@@ -54,49 +48,6 @@ async function executeAdapter (dataousrceConfig: DatasourceConfig): Promise<Adap
   const importedData = await AdapterClient.executeAdapter(dataousrceConfig)
   console.log(`Sucessful import via Adapter for Datasource ${dataousrceConfig.id}`)
   return importedData
-}
-
-async function executeTransformation (args: { pipelineConfig: PipelineConfig, dataLocation: string }): Promise<object> {
-  const pipelineConfig = args.pipelineConfig
-  const dataLocation = args.dataLocation
-
-  console.log(`Execute Pipeline Transformation ${pipelineConfig.id}`)
-  if (!pipelineConfig.transformation) {
-    pipelineConfig.transformation = {
-      dataLocation: AdapterClient.ADAPTER_SERVICE_URL + dataLocation
-    }
-    console.log('Transformation undefined. ')
-  }
-  try {
-    pipelineConfig.transformation.dataLocation = AdapterClient.ADAPTER_SERVICE_URL + dataLocation
-    const jobResult = await TransformationClient.executeTransformation(pipelineConfig.transformation)
-    return jobResult.data
-  } catch (e) {
-    handleError(e)
-    throw new Error('Failed to transform Data via Transformation Service')
-  }
-}
-
-async function executeStorage (args: { pipelineConfig: PipelineConfig, data: object }): Promise<string> {
-  const pipelineConfig = args.pipelineConfig
-  const data = args.data
-
-  console.log(`Storing data for ${pipelineConfig.id}`)
-  const dataLocation = await StorageClient.executeStorage(pipelineConfig, data)
-  console.log(`Sucessfully stored Data for Pipeline ${pipelineConfig.id}`)
-  return dataLocation
-}
-
-async function executeNotification (args: { notificationConfig: NotificationConfig, pipelineConfig: PipelineConfig, data: object, dataLocation: string }): Promise<void> {
-  const notificationConfig = args.notificationConfig
-  const pipelineConfig = args.pipelineConfig
-
-  notificationConfig.data = args.data
-  notificationConfig.dataLocation = args.dataLocation
-  notificationConfig.pipelineId = pipelineConfig.id
-  notificationConfig.pipelineName = pipelineConfig.metadata.displayName
-  await NotificationClient.executeNotification(notificationConfig)
-  console.log(`Successfully delivered notification request to transformation-service for ${pipelineConfig.id}`)
 }
 
 function sleep (ms: number): Promise<void> {

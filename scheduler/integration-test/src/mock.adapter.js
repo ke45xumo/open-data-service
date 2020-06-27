@@ -25,9 +25,16 @@ router.get('/', async ctx => {
   ctx.body = 'ok'
 })
 
+let dataImportCounter = 0
 router.post('/dataImport', async ctx => {
+  ++dataImportCounter
   ctx.type = 'text/json'
   ctx.body = dataImportResponse
+})
+
+router.get('/mock/dataImportCounter', async ctx => {
+  ctx.type = 'text/json'
+  ctx.body = { dataImportCounter: dataImportCounter }
 })
 
 router.get('/data/1', async  ctx => {
@@ -71,7 +78,7 @@ const DATASOURCES = [
       displayName: 'nordstream'
     },
     trigger: {
-      periodic: true,
+      periodic: false,
       firstExecution: '2018-10-07T01:32:00.123Z',
       interval: 10000
     }
