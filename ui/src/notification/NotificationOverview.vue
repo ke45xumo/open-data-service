@@ -118,10 +118,7 @@ const notificationNameSpace = {namespace: 'notification'}
   }
 })
 export default class PipelineNotifications extends Vue {
-  @Action('loadPipelineById', pipelineNameSpace) 
-  private loadPipelineByIdAction!: (id: number) => void
-
-  @Action('loadConfigsbyPipelineId', pipelineNameSpace) 
+  @Action('loadConfigsbyPipelineId', notificationNameSpace) 
   private loadConfigbyPipelineIdAction!: (id: number) => void
 
   @Action('addNotification', notificationNameSpace)
@@ -133,8 +130,8 @@ export default class PipelineNotifications extends Vue {
   @Action('updateNotification', notificationNameSpace)
   private updateNotificationAction!: (notification: NotificationConfig) => Promise<NotificationConfig[]>
 
-  @State('selectedPipeline', pipelineNameSpace) private selectedPipeline!: Pipeline
-  @State('notifications', notificationNameSpace) private notifications: NotificationConfig[] = []
+  //@State('selectedPipeline', pipelineNameSpace) private selectedPipeline!: Pipeline
+  @State('notifications', notificationNameSpace) private notifications!: NotificationConfig[]
   @State('isLoadingNotifications', notificationNameSpace) private isLoadingNotifications!: boolean;
 
   @Ref('notificationEdit')
@@ -153,9 +150,7 @@ export default class PipelineNotifications extends Vue {
   private async created () {
     console.log('Notification Overview created!')
     this.pipelineId = this.$route.params.pipelineId as unknown as number
-    await this.onLoadNotifications()
-    this.loadPipelineByIdAction(this.pipelineId)
-    //this.loadConfigbyPipelineIdAction(this.pipelineId)
+    this.loadConfigbyPipelineIdAction(this.pipelineId)
   }
 
   private onCreateNotification () {
@@ -169,15 +164,11 @@ export default class PipelineNotifications extends Vue {
   }
 
   private async onDeleteNotification (notification: NotificationConfig) {
-    // this.removeNotificationAction(notification)
-    await RestClient.remove(notification)
-    await this.onLoadNotifications()
+     this.removeNotificationAction(notification)
   }
 
   private async onLoadNotifications () {
-    //this.loadPipelineByIdAction(this.pipelineId)
-    this.notifications = await RestClient.getAllByPipelineId(this.pipelineId)
-    //await this.loadConfigbyPipelineIdAction(this.pipelineId)
+    await this.loadConfigbyPipelineIdAction(this.pipelineId)
   }
 
   private onNavigateBack () {
@@ -185,15 +176,13 @@ export default class PipelineNotifications extends Vue {
   }   
 
   private async onSave (editedNotification: NotificationConfig) {
+    editedNotification.pipelineId = this.pipelineId
+    
     if (this.isEdit) { // edit
-      //this.updateNotificationAction(editedNotification)
-      await RestClient.update(editedNotification)
+      this.updateNotificationAction(editedNotification)
     } else { // create
-      //this.addNotificationAction(editedNotification)
-      await RestClient.create(editedNotification)
+      this.addNotificationAction(editedNotification)
     }
- 
-    await this.onLoadNotifications()
   }
 }
 </script>

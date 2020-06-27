@@ -7,7 +7,21 @@ import AdapterResponse from '@/interfaces/adapter-response'
 export async function execute (datasourceConfig: DatasourceConfig, maxRetries = 3): Promise<void> {
   // adapter
   const adapterResponse: AdapterResponse =
-      await retryableExecution(executeAdapter, datasourceConfig, `Executing adapter for datasource ${datasourceConfig.id}`)
+        await retryableExecution(executeAdapter, datasourceConfig, `Executing adapter for datasource ${datasourceConfig.id}`)
+
+  // pipeline
+  const followingPipelines = await CoreClient.getCachedPipelinesByDatasourceId(datasourceConfig.id)
+  for (let pipelineConfig of followingPipelines) {
+    const transformedData =
+        await retryableExecution(executeTransformation, { pipelineConfig: pipelineConfig, dataLocation: adapterResponse.location }, `Executing transformatins for pipeline ${pipelineConfig.id}`)
+
+    const dataLocation =
+        await retryableExecution(executeStorage, { pipelineConfig: pipelineConfig, data: transformedData }, `Storing data for pipeline ${pipelineConfig.id}`)
+
+    pipelineConfig.notifications.map(async notificationConfig => {
+      await retryableExecution(executeNotification, { notificationConfig: notificationConfig, pipelineConfig: pipelineConfig, data: transformedData, dataLocation: dataLocation }, `Notifying clients for pipeline ${pipelineConfig.id}`)
+    })
+  }
 }
 
 async function retryableExecution<T1, T2>(func: (arg: T1) => Promise<T2>, args: T1, description: string, maxRetries = 3) : Promise<T2> {
