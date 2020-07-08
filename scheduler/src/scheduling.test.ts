@@ -19,8 +19,6 @@ jest.mock('./workflow-execution')
 const mockedWorkflowExecution = WorkflowExecution.execute as jest.Mock
 mockedWorkflowExecution.mockResolvedValue({})
 
-console.log = jest.fn()
-
 describe('Scheduler', () => {
   test('should initialize jobs correctly', async () => {
     const config = generateConfig(true, new Date(Date.now() + 5000), 6000)

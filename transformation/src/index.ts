@@ -1,9 +1,6 @@
 import { TransformationEndpoint } from './transformationEndpoint'
-import VM2SandboxExecutor from './executors/vm2SandboxExecutor'
+import VM2SandboxExecutor from './vm2SandboxExecutor'
 import JSTransformationService from './jsTransformationService'
-import { AmqpHandler } from './handlers/amqpHandler'
-import { StorageHandler } from './handlers/storageHandler';
-import "reflect-metadata"
 
 const port = 8080
 
@@ -15,8 +12,6 @@ if (authEnabled === false) {
 
 const sandboxExecutor = new VM2SandboxExecutor()
 const transformationService = new JSTransformationService(sandboxExecutor)
-const storageHandler = new StorageHandler()
-const amqpHandler = new AmqpHandler(storageHandler, transformationService)
-const transformationEndpoint = new TransformationEndpoint(transformationService, storageHandler, amqpHandler, port, authEnabled)
+const transformationEndpoint = new TransformationEndpoint(transformationService, port, authEnabled)
 
 transformationEndpoint.listen()

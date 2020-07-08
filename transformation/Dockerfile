@@ -13,7 +13,6 @@ RUN npm ci
 
 # copy rest of the files
 COPY ./src ./src
-COPY ./tests ./tests
 COPY ./tsconfig.json ./
 COPY ./jest.config.js ./
 

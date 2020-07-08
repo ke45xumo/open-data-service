@@ -1,8 +1,8 @@
 import axios from 'axios'
 
-import ExecutionResult from './interfaces/job/executionResult'
-import JobResult from './interfaces/job/jobResult'
-import Stats from './interfaces/job/stats'
+import ExecutionResult from './interfaces/executionResult'
+import JobResult from './interfaces/jobResult'
+import Stats from './interfaces/stats'
 
 import TransformationService from './interfaces/transformationService'
 import SandboxExecutor from './interfaces/sandboxExecutor'
@@ -28,8 +28,6 @@ export default class JSTransformationService implements TransformationService {
     return [time, result]
   }
 
-
-  
   executeJob (code: string, data: object): JobResult {
     const startTimestamp = Date.now()
 
@@ -56,6 +54,4 @@ export default class JSTransformationService implements TransformationService {
     const jobResult: JobResult = { ...result, stats }
     return jobResult
   }
-
-  
 }
