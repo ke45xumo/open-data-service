@@ -6,6 +6,7 @@ import org.jvalue.ods.adapterservice.adapter.model.AdapterConfig;
 import org.jvalue.ods.adapterservice.adapter.model.DataBlob;
 import org.jvalue.ods.adapterservice.config.RabbitConfiguration;
 import org.jvalue.ods.adapterservice.datasource.event.DatasourceEvent;
+import org.jvalue.ods.adapterservice.datasource.event.DatasourceImportedEvent;
 import org.jvalue.ods.adapterservice.datasource.event.EventType;
 import org.jvalue.ods.adapterservice.datasource.model.Datasource;
 import org.jvalue.ods.adapterservice.datasource.model.DatasourceMetadata;
@@ -26,8 +27,8 @@ public class DatasourceManager {
   private final DatasourceRepository datasourceRepository;
   private final DatasourceEventRepository eventRepository;
   private final AdapterFactory adapterFactory;
-
   private final RabbitTemplate rabbitTemplate;
+
 
   @Autowired
   public DatasourceManager(DatasourceRepository datasourceRepository, DatasourceEventRepository eventRepository, AdapterFactory adapterFactory, RabbitTemplate rabbitTemplate) {
@@ -44,12 +45,6 @@ public class DatasourceManager {
 
     Datasource savedConfig = datasourceRepository.save(config);
     eventRepository.save(new DatasourceEvent(EventType.DATASOURCE_CREATE, savedConfig.getId()));
-
-    // Send to scheduler queue
-    DatasourceEvent event = new DatasourceEvent(EventType.DATASOURCE_CREATE, savedConfig.getId());
-    if(rabbitTemplate != null) {
-      rabbitTemplate.convertAndSend(RabbitConfiguration.DATA_CONFIG_QUEUE, event.toJSON());
-    }
 
     return savedConfig;
   }
@@ -101,8 +96,10 @@ public class DatasourceManager {
  public DataBlob.MetaData trigger(Long id, RuntimeParameters runtimeParameters) {
     AdapterConfig adapterConfig = getParametrizedDatasource(id, runtimeParameters);
    try {
-     Adapter adapter = adapterFactory.getAdapter(adapterConfig);
-     return adapter.executeJob(adapterConfig);
+      Adapter adapter = adapterFactory.getAdapter(adapterConfig);
+      DataBlob.MetaData executionResult = adapter.executeJob(adapterConfig);
+      this.rabbitTemplate.convertAndSend(RabbitConfiguration.DATA_IMPORT_QUEUE, new DatasourceImportedEvent(id, executionResult.getLocation()));
+      return executionResult;
    } catch (Exception e) {
      if(e instanceof IllegalArgumentException) {
        System.err.println("Data Import request failed. Malformed Request: " + e.getMessage());

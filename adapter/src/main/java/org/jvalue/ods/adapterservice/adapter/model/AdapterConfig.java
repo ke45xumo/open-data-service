@@ -8,8 +8,6 @@ import java.util.Objects;
 
 public class AdapterConfig {
 
-    private long id;
-
     @NotNull
     public final ProtocolConfig protocolConfig;
 
@@ -37,12 +35,4 @@ public class AdapterConfig {
     public int hashCode() {
         return Objects.hash(protocolConfig, formatConfig);
     }
-
-    public long getID() {
-      return id;
-    }
-
-    public void setID(long id) {
-      this.id = id;
-  }
 }
